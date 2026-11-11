@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "site.config.schema.json",
+  "title": "Site config",
+  "description": "Everything personal about the site. Checked when the site is built (scripts/lib/config.ts); this schema gives editors autocomplete and inline errors.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "site",
+    "profile",
+    "pages"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "description": "Version of this file's format. Bumped, with a migration, when the format changes. Version 1 files are upgraded automatically when the site is built.",
+      "const": 2
+    },
+    "site": {
+      "description": "About the site itself, rather than its owner.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "description": "Short name shown in the title bar and boot sequence, e.g. \"andrew-wy\".",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$"
+        },
+        "description": {
+          "description": "For search engines: the page's <meta name=\"description\">.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "shareDescription": {
+          "description": "For link previews (og:description). Defaults to description.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "repo": {
+          "description": "The site's GitHub repository, \"owner/name\". The /edit command opens it in the Studio.",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$"
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "handle",
+        "title",
+        "keywords",
+        "bio",
+        "skills",
+        "photo",
+        "links",
+        "formspreeId"
+      ],
+      "properties": {
+        "name": {
+          "description": "Your name, shown on Home and About.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "handle": {
+          "description": "Short lowercase id, shown as the home directory (~/handle).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,38}$"
+        },
+        "title": {
+          "description": "Job title, e.g. \"DevOps Engineer\".",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "keywords": {
+          "description": "Focus areas shown under your name.",
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "bio": {
+          "description": "About page text. Each string is one paragraph.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "skills": {
+          "description": "Skill groups on the About page.",
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "group",
+              "items"
+            ],
+            "properties": {
+              "group": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "items": {
+                "type": "array",
+                "maxItems": 30,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40
+                }
+              }
+            }
+          }
+        },
+        "photo": {
+          "description": "The real photo on the About page, revealed from the 8-bit portrait.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "src",
+            "alt"
+          ],
+          "properties": {
+            "src": {
+              "description": "Path from the repo root to an .svg, .png, .jpg, .jpeg or .webp file (at most 512 KB). A square image of at least 440×440 works best.",
+              "type": "string",
+              "pattern": "^(?!/)(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.(svg|png|jpe?g|webp)$"
+            },
+            "alt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        },
+        "links": {
+          "description": "Links on the Contact page, also used by the prompt's `open` command.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "display",
+              "href"
+            ],
+            "properties": {
+              "id": {
+                "enum": [
+                  "github",
+                  "linkedin",
+                  "x",
+                  "email"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              "display": {
+                "description": "Text shown to visitors.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "href": {
+                "description": "An https:// or http:// URL, or mailto: for email.",
+                "type": "string",
+                "pattern": "^(https?://|mailto:)\\S+$"
+              }
+            }
+          }
+        },
+        "formspreeId": {
+          "description": "Your Formspree form ID (the part after https://formspree.io/f/). Leave as YOUR_FORM_ID or empty to open the visitor's email app instead.",
+          "type": "string"
+        }
+      }
+    },
+    "pages": {
+      "description": "The site's pages, in tab order. Number keys 1–9 reach the first nine that aren't hidden.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "description": "The page's URL (#/<id>) and prompt command (/<id>). Can't be a prompt command such as help, ls or open.",
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,30}$",
+            "not": {
+              "enum": [
+                "help",
+                "h",
+                "cd",
+                "ls",
+                "whoami",
+                "open",
+                "clear",
+                "date",
+                "echo",
+                "sudo",
+                "rm",
+                "studio",
+                "edit",
+                "login",
+                "logout",
+                "fork",
+                "spawn",
+                "init",
+                "assets",
+                "content",
+                "api"
+              ]
+            }
+          },
+          "type": {
+            "description": "A built-in page, or markdown for a custom page from content/pages/<id>.md. One of each built-in type at most, and there must be a home page.",
+            "enum": [
+              "home",
+              "about",
+              "projects",
+              "posts",
+              "contact",
+              "markdown"
+            ]
+          },
+          "title": {
+            "description": "Tab label. Defaults to the type's own (e.g. \"Projects\"), or a custom page's front matter title.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 30
+          },
+          "description": {
+            "description": "Shown in help and the Home menu. Defaults to the type's own.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "hidden": {
+            "description": "Leave the page out of the tabs, number keys, Home menu, help and ls. It's still reachable at its URL.",
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

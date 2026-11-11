@@ -1,0 +1,71 @@
+name: Deploy to GitHub Pages
+
+# Every push to main: typecheck, test, build, then publish dist/ to GitHub Pages.
+# It needs no secrets. A failed check stops the run, and the live site keeps its last version.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.pages.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.4"
+
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+
+      # Turns Pages on (source: GitHub Actions) if it's off. The workflow's own token isn't
+      # always allowed to do that, so a failure here doesn't fail the run: see the next step.
+      - name: Set up Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+        continue-on-error: true
+
+      - name: Explain how to turn Pages on
+        if: steps.pages.outcome != 'success'
+        run: |
+          msg="GitHub Pages is off for this repository, so the site was built but not deployed. Turn it on under Settings → Pages → Source: GitHub Actions (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/settings/pages), then run this workflow again."
+          echo "::warning title=GitHub Pages is off::$msg"
+          echo "### GitHub Pages is off" >> "$GITHUB_STEP_SUMMARY"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload dist/
+        if: steps.pages.outcome == 'success'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: needs.build.outputs.pages == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

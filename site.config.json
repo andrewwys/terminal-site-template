@@ -1,0 +1,41 @@
+{
+  "$schema": "./site.config.schema.json",
+  "schemaVersion": 2,
+  "site": {
+    "name": "your-name",
+    "description": "Your Name — Software Engineer. A terminal-style personal site.",
+    "shareDescription": "Projects · Posts · Contact"
+  },
+  "profile": {
+    "name": "Your Name",
+    "handle": "your-handle",
+    "title": "Software Engineer",
+    "keywords": ["Keyword_One", "Keyword_Two", "Keyword_Three"],
+    "bio": [
+      "This is a sample site. Replace this paragraph with a short introduction: who you are, what you work on and what you care about.",
+      "Everything on the site comes from site.config.json and the Markdown files in content/. Change them, push to main, and the site redeploys."
+    ],
+    "skills": [
+      { "group": "Languages", "items": ["TypeScript", "Python", "Go"] },
+      { "group": "Tools", "items": ["Bun", "Git", "GitHub Actions"] }
+    ],
+    "photo": {
+      "src": "src/assets/profile-real.svg",
+      "alt": "Placeholder photo"
+    },
+    "links": [
+      { "id": "github", "label": "GitHub", "display": "github.com/your-handle", "href": "https://github.com/your-handle" },
+      { "id": "linkedin", "label": "LinkedIn", "display": "linkedin.com/in/your-handle", "href": "https://www.linkedin.com/in/your-handle" },
+      { "id": "email", "label": "Email", "display": "hello@example.com", "href": "mailto:hello@example.com" }
+    ],
+    "formspreeId": "YOUR_FORM_ID"
+  },
+  "pages": [
+    { "id": "home", "type": "home" },
+    { "id": "about", "type": "about" },
+    { "id": "projects", "type": "projects" },
+    { "id": "posts", "type": "posts" },
+    { "id": "uses", "type": "markdown" },
+    { "id": "contact", "type": "contact" }
+  ]
+}

@@ -1,0 +1,141 @@
+name: Update from template
+
+# Checks the template this site was made from for a newer version. If there is one, it copies
+# the template's files over this repo, leaving your content alone (site.config.json, content/,
+# src/assets/, README.md and files you added), runs the checks, and opens a pull request for
+# you to review. Nothing changes on main until you merge it.
+on:
+  schedule:
+    - cron: "17 5 * * 1" # Mondays, 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-from-template
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+    env:
+      # Optional: a token that may change workflow files (fine-grained: Contents, Pull requests
+      # and Workflows, read and write, on this repo). Without it, workflow changes are listed in
+      # the pull request for you to copy by hand.
+      UPDATE_TOKEN: ${{ secrets.TEMPLATE_UPDATE_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.TEMPLATE_UPDATE_TOKEN || github.token }}
+
+      - name: Look for a newer template
+        id: find
+        run: |
+          template=$(jq -er .template template.json)
+          current=$(jq -er .version template.json)
+          if ! [[ "$template" =~ ^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::template.json: \"template\" must be a repository as owner/name"; exit 1
+          fi
+          if [ "${template,,}" = "${GITHUB_REPOSITORY,,}" ]; then
+            echo "This repository is the template itself; nothing to update."; exit 0
+          fi
+          latest=$(git ls-remote --tags --refs --sort=-v:refname "https://github.com/$template.git" 'v*' | head -n 1 | sed 's#.*refs/tags/##')
+          if [ -z "$latest" ]; then echo "$template has no published version yet."; exit 0; fi
+          if ! [[ "$latest" =~ ^v[0-9A-Za-z.-]+$ ]]; then echo "::error::unexpected version name"; exit 1; fi
+          echo "This site is on $current; the template's latest is $latest."
+          if [ "$latest" = "$current" ]; then exit 0; fi
+          branch="template-update/$latest"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "The branch $branch already exists; merge or delete it to try again."; exit 0
+          fi
+          {
+            echo "template=$template"
+            echo "current=$current"
+            echo "latest=$latest"
+            echo "branch=$branch"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@v2
+        if: steps.find.outputs.latest
+        with:
+          bun-version: "1.4.4"
+
+      - name: Apply the new template
+        if: steps.find.outputs.latest
+        env:
+          TEMPLATE: ${{ steps.find.outputs.template }}
+          LATEST: ${{ steps.find.outputs.latest }}
+        run: |
+          git clone --quiet --depth 1 --branch "$LATEST" "https://github.com/$TEMPLATE.git" "$RUNNER_TEMP/template"
+          # The new template's own updater does the copying, so it knows the new layout.
+          # The workflow's own token can't push changes to workflow files, so leave those out without the extra token.
+          workflows=""; [ -n "$UPDATE_TOKEN" ] || workflows="--skip-workflows"
+          bun "$RUNNER_TEMP/template/scripts/update-from-template.ts" "$RUNNER_TEMP/template" . --summary "$RUNNER_TEMP/summary.json" $workflows
+          bun scripts/migrate-config.ts
+
+      - name: Typecheck, test and build
+        id: checks
+        if: steps.find.outputs.latest
+        continue-on-error: true
+        run: |
+          bun install --frozen-lockfile
+          bun run typecheck
+          bun test
+          bun run build
+
+      - name: Open a pull request
+        if: steps.find.outputs.latest
+        env:
+          GH_TOKEN: ${{ secrets.TEMPLATE_UPDATE_TOKEN || github.token }}
+          TEMPLATE: ${{ steps.find.outputs.template }}
+          CURRENT: ${{ steps.find.outputs.current }}
+          LATEST: ${{ steps.find.outputs.latest }}
+          BRANCH: ${{ steps.find.outputs.branch }}
+          CHECKS: ${{ steps.checks.outcome }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          if git diff --cached --quiet; then echo "The new template changes nothing here."; exit 0; fi
+          git commit --quiet -m "Update from template $LATEST"
+          git push --quiet origin "$BRANCH"
+
+          body="$RUNNER_TEMP/body.md"
+          {
+            echo "Updates this site's code from [$TEMPLATE](https://github.com/$TEMPLATE) **$CURRENT → $LATEST** ([what changed](https://github.com/$TEMPLATE/compare/$CURRENT...$LATEST))."
+            echo
+            echo "Your content is untouched: \`site.config.json\` (unless its format needed upgrading), \`content/\`, \`src/assets/\`, \`README.md\` and files you added."
+            echo
+            if [ "$CHECKS" = "success" ]; then
+              echo "✅ Typecheck, tests and build passed with your content."
+            else
+              echo "⚠️ **Typecheck, tests or build failed with your content.** See the workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID. Fix it on this branch before merging."
+            fi
+            echo
+            echo "- $(jq '.updated | length' "$RUNNER_TEMP/summary.json") file(s) updated, $(jq '.removed | length' "$RUNNER_TEMP/summary.json") removed"
+            if [ "$(jq '.skippedWorkflows | length' "$RUNNER_TEMP/summary.json")" != "0" ]; then
+              echo
+              echo "**Workflow files not updated.** GitHub doesn't let a workflow change workflow files with its own token. Copy these from the template by hand, or add a \`TEMPLATE_UPDATE_TOKEN\` secret (see the README) and run the update again:"
+              jq -r --arg t "$TEMPLATE" --arg v "$LATEST" '.skippedWorkflows[] | "- [`\(.)`](https://github.com/\($t)/blob/\($v)/\(.))"' "$RUNNER_TEMP/summary.json"
+            fi
+          } > "$body"
+
+          draft=""; [ "$CHECKS" = "success" ] || draft="--draft"
+          if url=$(gh pr create --base "${GITHUB_REF_NAME}" --head "$BRANCH" --title "Update from template $LATEST" --body-file "$body" $draft); then
+            echo "Opened $url"
+            echo "### Opened $url" >> "$GITHUB_STEP_SUMMARY"
+          else
+            # Most likely "GitHub Actions is not permitted to create pull requests" (a repo setting).
+            link="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/${GITHUB_REF_NAME}...$BRANCH?expand=1"
+            echo "::warning title=Open the pull request yourself::The update is on the branch $BRANCH, but this workflow isn't allowed to open pull requests. Open it here: $link (or allow it under Settings → Actions → General → Workflow permissions)."
+            {
+              echo "### The update is ready on \`$BRANCH\`"
+              echo "This workflow isn't allowed to open pull requests in this repository. [Open the pull request]($link), or tick **Allow GitHub Actions to create and approve pull requests** under Settings → Actions → General and run it again."
+              echo
+              cat "$body"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

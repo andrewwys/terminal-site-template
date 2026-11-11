@@ -1,0 +1,19 @@
+{
+  "name": "terminal-career-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A terminal-style personal site built with Bun and vanilla TypeScript.",
+  "scripts": {
+    "dev": "bun --hot scripts/dev.ts",
+    "dev:drafts": "SHOW_DRAFTS=1 bun --hot scripts/dev.ts",
+    "build": "rm -rf dist && bun build ./index.html --outdir=dist --minify && bun scripts/postbuild.ts dist && cp staticwebapp.config.json dist/",
+    "preview": "bun run build && bun scripts/serve.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}

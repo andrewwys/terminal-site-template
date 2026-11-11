@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Name — Software Engineer</title>
+    <meta name="description" content="Your Name — Software Engineer. A terminal-style personal site." />
+    <meta name="theme-color" content="#141413" />
+    <meta name="color-scheme" content="dark" />
+    <meta property="og:title" content="Your Name — Software Engineer" />
+    <meta property="og:description" content="Projects · Posts · Contact" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23141413'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='monospace' font-size='22' fill='%23d97757'%3E%E2%9C%BB%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#view">Skip to content</a>
+    <div class="term">
+      <header class="term-bar">
+        <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="term-title"><span class="accent">✻</span> <span id="site-name">your-name</span> <span class="dim">—</span> <span id="crumb">~</span></span>
+        <span class="term-size dim" aria-hidden="true">bun · ts</span>
+      </header>
+
+      <nav id="tabs" class="tabs" aria-label="Pages"><a href="#/home" data-route="home"><span class="key" aria-hidden="true">1</span>Home</a><a href="#/about" data-route="about"><span class="key" aria-hidden="true">2</span>About</a><a href="#/projects" data-route="projects"><span class="key" aria-hidden="true">3</span>Projects</a><a href="#/posts" data-route="posts"><span class="key" aria-hidden="true">4</span>Posts</a><a href="#/uses" data-route="uses"><span class="key" aria-hidden="true">5</span>Uses</a><a href="#/contact" data-route="contact"><span class="key" aria-hidden="true">6</span>Contact</a></nav>
+
+      <main id="view" class="view" tabindex="-1"></main>
+
+      <section class="console" aria-label="Command prompt">
+        <div id="cmd-out" class="cmd-out" aria-live="polite" hidden></div>
+        <form id="prompt" class="prompt-box" autocomplete="off">
+          <label for="cmd" class="ps1">›</label>
+          <input
+            id="cmd"
+            name="cmd"
+            type="text"
+            spellcheck="false"
+            autocapitalize="off"
+            placeholder='Try "help" or "/posts"'
+            aria-label="Command"
+            aria-describedby="cmd-hint"
+          />
+        </form>
+        <ul id="cmd-suggest" class="cmd-suggest" hidden></ul>
+        <footer class="statusbar">
+          <span id="cmd-hint" class="dim"><kbd>?</kbd> for shortcuts</span>
+          <span class="dim hide-sm">← → pages · ↑ ↓ select · ↵ open · / command</span>
+          <span class="status-right"><span class="ok">●</span> <span id="status-title">Software Engineer</span></span>
+        </footer>
+      </section>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
